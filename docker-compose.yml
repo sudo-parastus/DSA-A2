@@ -1,9 +1,14 @@
 version: '3'
 services:
+
+# ZOOKEEPER
   zookeeper:
     image: wurstmeister/zookeeper:latest
     ports:
       - "2181:2181"
+
+
+# KAFKA CLUSTER 
 
   kafka:
     image: wurstmeister/kafka:latest
@@ -15,3 +20,18 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
     depends_on:
       - zookeeper
+
+
+# OUR MONGODB CONTAINER
+
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
