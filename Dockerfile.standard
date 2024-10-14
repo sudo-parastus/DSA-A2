@@ -1,0 +1,15 @@
+# Use the official Ballerina image (latest stable version)
+FROM ballerina/ballerina:latest
+
+# Set the working directory inside the container
+WORKDIR /usr/src/app
+
+# Copy the standard delivery service Ballerina code into the container
+COPY ./src/standard_delivery_service .
+
+# Expose the port where the standard delivery service will be running
+EXPOSE 9091
+
+# Command to run the Ballerina standard delivery service when the container starts
+CMD ["ballerina", "run", "standard_delivery_service.bal"]
+
