@@ -1,35 +1,25 @@
 import ballerina/http;
-import ballerina/log;
 import ballerinax/kafka;
 import ballerinax/mongodb;
+import ballerina/io;
 
 type Shipment record {
     string shipmentId;
     string pickupLocation;
     string deliveryLocation;
-    string preferredTimeSlots;
     string requestStatus;
-    string typeOfShipment; // "standard", "express", or "international"
+    string typeOfShipment; 
     Customer customer;
 };
 
 type Customer record {
-    string firstName;
-    string lastName;
-    string contactNumber;
+    string fullName;
     string email;
     string address;
 };
 
-type DeliveryStatus record {
-    string shipmentId;
-    string availableTime;
-    string status;
-};
-
 type DeliveryResponse record {
-    string shipmentId;
-    string availableTime;
+    string message;
 };
 
 // MongoDB client for database operations
@@ -68,43 +58,16 @@ service /logistics on new http:Listener(8080) {
             value: shipment
         });
 
-        log:printInfo("Published pickup request to Kafka topic " + topic + ": " + shipment.shipmentId);
+        io:println("Published pickup request to Kafka topic " + topic + ": " + shipment.shipmentId);
         return {message: "Pickup request is being processed", shipmentId: shipment.shipmentId};
     }
 
-    // Handle delivery responses from delivery services
-    resource function post deliveryResponse(DeliveryResponse response) returns error? {
-        log:printInfo("Received delivery response: " + response.toString());
-
-        // Extract relevant information from the response record
-        string shipmentId = response.shipmentId;
-        string availableTime = response.availableTime;
-
-        // Prepare the update data
-        mongodb:Update updateData = {
-            set: {
-                requestStatus: "Confirmed",
-                availableTime: availableTime
-            }
-        };
-
-        // Update the shipment status in the database
-        mongodb:Database database = check mongoDb->getDatabase("logisticsDB");
-        mongodb:Collection collection = check database->getCollection("shipments");
-
-        // Perform the update operation
-        _ = check collection->updateOne({"shipmentId": shipmentId}, updateData);
-
-        // Prepare and log the final response for this shipment
-        json finalResponse = {
-            "message": "Delivery confirmed",
-            "shipmentId": shipmentId,
-            "availableTime": availableTime,
-            "status": "Confirmed"
-        };
-
-        log:printInfo("Final delivery response sent to the customer: " + finalResponse.toString());
+        resource function post deliveryResponse(DeliveryResponse response) returns error? {
+        // Log the response received from the delivery service
+        io:println("Received response from delivery service: " + response.toJsonString());
+        
+        // Print response to console
+        io:println("Response from delivery service: ", response.toJsonString());
     }
-
 }
 

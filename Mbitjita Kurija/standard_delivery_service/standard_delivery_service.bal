@@ -1,32 +1,32 @@
 import ballerina/http;
 import ballerina/io;
-import ballerina/log;
+import ballerina/time;
 import ballerinax/kafka;
 import ballerinax/mongodb;
-import ballerina/time;
 
 type Shipment record {
     string shipmentId;
     string pickupLocation;
     string deliveryLocation;
-    string preferredTimeSlots;
     string requestStatus;
-    string typeOfShipment; // "standard", "express", or "international"
+    string typeOfShipment;
     Customer customer;
 };
 
 type Customer record {
-    string firstName;
-    string lastName;
-    string contactNumber;
+    string fullName;
     string email;
     string address;
+};
+
+type DeliveryResponse record {
+    string message;
 };
 
 // Function to check availability dynamically (stub function)
 function checkAvailability() returns string|error {
     // Get the current time
-    time:Utc currentTime = time:utcNow();
+    time:Civil currentTime = time:utcToCivil(time:utcNow());
     return currentTime.toString();
 }
 
@@ -56,17 +56,17 @@ public function main() returns error? {
         Shipment[] shipments = check shipmentConsumer->pollPayload(15);
 
         from Shipment shipment in shipments
-        where 'shipment.requestStatus == "pending" // Only process pending shipments
+        where 'shipment.requestStatus == "Pending" // Only process pending shipments
         do {
             // Log the received shipment request
-            log:printInfo("Received shipment request for delivery: " + shipment.toString());
+            io:println("Received shipment request for delivery: " + shipment.toString());
 
             // Simulate checking availability
             string availableTime = check checkAvailability();
 
             // Prepare the response
-            json response = {
-                "message": "Accepted by Standard Delivery"
+            DeliveryResponse response = {
+                message: "Accepted by Standard Delivery"
             };
 
             // Send the response back to the Central Logistics Service
@@ -74,18 +74,19 @@ public function main() returns error? {
             http:Response|error post = logisticsClient->post("/deliveryResponse", response);
 
             if post is error {
-                log:printError("Failed to send response to logistics service: " + post.toString());
+                io:println("Failed to send response to logistics service: " + post.toString());
             } else {
-                log:printInfo("Response sent to logistics service successfully.");
+                io:println("Response sent to logistics service successfully.");
             }
 
             // Update shipment status in MongoDB
             mongodb:Update updateData = {
-                "$set": {
-                    "requestStatus": "Confirmed",
-                    "availableTime": availableTime
+                set: {
+                    requestStatus: "Confirmed",
+                    availableTime: availableTime
                 }
             };
+            
             mongodb:Database database = check mongoDbClient->getDatabase("logisticsDB");
             mongodb:Collection collection = check database->getCollection("shipments");
             _ = check collection->updateOne({"shipmentId": shipment.shipmentId}, updateData);
