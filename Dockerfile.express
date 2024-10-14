@@ -1,0 +1,17 @@
+# Use the official Ballerina base image
+FROM ballerina/ballerina:latest
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the Ballerina source file into the container
+COPY express_delivery_service.bal .
+
+# Build the Ballerina project
+RUN bal build express_delivery_service.bal
+
+# Expose the port the service runs on
+EXPOSE 8080
+
+# Command to run the executable
+CMD ["bal", "run", "express_delivery_service.bal"]
